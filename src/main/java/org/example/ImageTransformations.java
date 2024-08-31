@@ -5,6 +5,9 @@ import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 import java.awt.image.ConvolveOp;
 import java.awt.image.Kernel;
+import java.util.InputMismatchException;
+import java.util.Random;
+import java.util.Scanner;
 
 public class ImageTransformations {
 
@@ -35,10 +38,12 @@ public class ImageTransformations {
             case 5:
                 return rotateImage(90);
             case 6:
-                return scaleImage(0.5);
+                return applyNoise(50.0);
             case 7:
-                return increaseBrightness(1.5);
+                return changeBrightness(3.0);
             case 8:
+                return changeBrightness(0.3);
+            case 9:
                 return applyEdgeDetection();
             default:
                 return originalImage;
@@ -107,13 +112,17 @@ public class ImageTransformations {
 
     public BufferedImage applyGaussianBlur() {
         float[] matrix = {
-                1/16f, 2/16f, 1/16f,
-                2/16f, 4/16f, 2/16f,
-                1/16f, 2/16f, 1/16f
+                1/256f,  4/256f,  6/256f,  4/256f, 1/256f,
+                4/256f, 16/256f, 24/256f, 16/256f, 4/256f,
+                6/256f, 24/256f, 36/256f, 24/256f, 6/256f,
+                4/256f, 16/256f, 24/256f, 16/256f, 4/256f,
+                1/256f,  4/256f,  6/256f,  4/256f, 1/256f
         };
 
-        BufferedImageOp op = new ConvolveOp(new Kernel(3, 3, matrix), ConvolveOp.EDGE_NO_OP, null);
-        transformedImage = op.filter(originalImage, null);
+        BufferedImageOp op = new ConvolveOp(new Kernel(5, 5, matrix), ConvolveOp.EDGE_NO_OP, null);
+        BufferedImage transformedImage = originalImage;
+        for (int i = 0; i < 6; i++)
+            transformedImage = op.filter(transformedImage, null);
 
         return transformedImage;
     }
@@ -135,6 +144,34 @@ public class ImageTransformations {
         return transformedImage;
     }
 
+    public BufferedImage applyNoise(double noiseLevel) {
+        Random random = new Random();
+        transformedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int rgb = originalImage.getRGB(x, y);
+
+                int r = (rgb >> 16) & 0xFF;
+                int g = (rgb >> 8) & 0xFF;
+                int b = rgb & 0xFF;
+
+                int noiseR = (int) (random.nextGaussian() * noiseLevel);
+                int noiseG = (int) (random.nextGaussian() * noiseLevel);
+                int noiseB = (int) (random.nextGaussian() * noiseLevel);
+
+                r = Math.min(255, Math.max(0, r + noiseR));
+                g = Math.min(255, Math.max(0, g + noiseG));
+                b = Math.min(255, Math.max(0, b + noiseB));
+
+                int noisyPixel = (r << 16) | (g << 8) | b;
+                transformedImage.setRGB(x, y, noisyPixel);
+            }
+        }
+
+        return transformedImage;
+    }
+
     public BufferedImage scaleImage(double scale) {
         int newWidth = (int) (width * scale);
         int newHeight = (int) (height * scale);
@@ -148,7 +185,7 @@ public class ImageTransformations {
     }
 
 
-    public BufferedImage increaseBrightness(double factor) {
+    public BufferedImage changeBrightness(double factor) {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int rgb = originalImage.getRGB(x, y);
