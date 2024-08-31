@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.List;
 import java.util.Objects;
+import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
@@ -18,6 +19,21 @@ public class Main {
         int num_of_threads = 10;
         String inputDirectory = "src/main/resources/images";
         String outputDirectory = "src/main/resources/images_processed";
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Which transformation would you like to apply?");
+        System.out.println("1. Convert to grayscale");
+        System.out.println("2. Convert to sepia");
+        System.out.println("3. Convert to negative");
+        System.out.println("4. Apply Gaussian blur");
+        System.out.println("5. Rotate 90 degrees clockwise");
+        System.out.println("6. Scale down by 50%");
+        System.out.println("7. Increase brightness");
+        System.out.println("8. Apply edge detection");
+
+        System.out.println("Enter the number of the desired transformation:");
+        int transformationType = scanner.nextInt();
+        scanner.close();
 
         List<Path> files;
         Path source = Path.of(inputDirectory);
@@ -41,7 +57,7 @@ public class Main {
                     }).filter(Objects::nonNull)
                     .forEach(pair -> executor.submit(() ->
                     {
-                        Pair<String, BufferedImage> new_pair = processImage(pair);
+                        Pair<String, BufferedImage> new_pair = processImage(pair, transformationType);
                         saveImage(new_pair, outputDirectory);
                     }));
 
@@ -61,8 +77,9 @@ public class Main {
         }
     }
 
-    private static Pair<String, BufferedImage> processImage(Pair<String, BufferedImage> pair) {
-        BufferedImage transformedImage = transformImage(pair.getRight());
+    private static Pair<String, BufferedImage> processImage(Pair<String, BufferedImage> pair, int transformationType) {
+        ImageTransformations imageTransformations = new ImageTransformations(pair.getRight(), transformationType);
+        BufferedImage transformedImage = imageTransformations.transformImage();
         System.out.println("Transformed a file: " + pair.getLeft());
         return Pair.of(pair.getLeft(), transformedImage);
     }
@@ -75,26 +92,5 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private static BufferedImage transformImage(BufferedImage originalImage) {
-        int width = originalImage.getWidth();
-        int height = originalImage.getHeight();
-        BufferedImage transformedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
-                int rgb = originalImage.getRGB(i, j);
-                Color color = new Color(rgb);
-
-                int red = color.getRed();
-                int green = color.getBlue();
-                int blue = color.getGreen();
-
-                Color newColor = new Color(red, green, blue);
-                transformedImage.setRGB(i, j, newColor.getRGB());
-            }
-        }
-        return transformedImage;
     }
 }
